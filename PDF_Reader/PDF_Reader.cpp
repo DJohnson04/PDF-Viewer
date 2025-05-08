@@ -4,6 +4,7 @@
 #include "framework.h"
 #include "PDF_Reader.h"
 #include <string>
+#include "../pdfium/public/fpdfview.h"
 #define MAX_LOADSTRING 100
 
 // Global Variables:
@@ -29,6 +30,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     // TODO: Place code here.
     std::string filePath;
+    
+
     // Initialize global strings
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_PDFREADER, szWindowClass, MAX_LOADSTRING);
@@ -179,4 +182,60 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     }
     return (INT_PTR)FALSE;
+}
+
+// Function: initPDFium
+//
+// Description: Starts the PDFium library
+int initPDFium(char* path)
+{
+    
+    FPDF_LIBRARY_CONFIG config;
+    config.version = 2;
+    config.m_pUserFontPaths = NULL;
+    config.m_pIsolate = NULL;
+    config.m_pPlatform = 0;
+    FPDF_InitLibraryWithConfig(&config);
+    //Load Document
+    FPDF_BYTESTRING pdfEncryptionKey = NULL;
+    if (!path)
+        return -1;
+    FPDF_STRING docPath{ path };
+    FPDF_DOCUMENT document = FPDF_LoadDocument(docPath, pdfEncryptionKey);
+    if (!document) {
+        unsigned long err = FPDF_GetLastError();
+        fprintf(stderr, "Load pdf docs unsuccessful: ");
+        switch (err) {
+        case FPDF_ERR_SUCCESS:
+            fprintf(stderr, "Success");
+            break;
+        case FPDF_ERR_UNKNOWN:
+            fprintf(stderr, "Unknown error");
+            break;
+        case FPDF_ERR_FILE:
+            fprintf(stderr, "File not found or could not be opened");
+            break;
+        case FPDF_ERR_FORMAT:
+            fprintf(stderr, "File not in PDF format or corrupted");
+            break;
+        case FPDF_ERR_PASSWORD:
+            fprintf(stderr, "Password required or incorrect password");
+            break;
+        case FPDF_ERR_SECURITY:
+            fprintf(stderr, "Unsupported security scheme");
+            break;
+        case FPDF_ERR_PAGE:
+            fprintf(stderr, "Page not found or content error");
+            break;
+        default:
+            fprintf(stderr, "Unknown error %ld", err);
+        }
+        FPDF_DestroyLibrary();
+        return -1;
+    }
+
+}
+void freePDFium()
+{
+    FPDF_DestroyLibrary();
 }
